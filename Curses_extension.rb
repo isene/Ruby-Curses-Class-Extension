@@ -8,6 +8,8 @@ class Curses::Window # CLASS EXTENSION
   end
   def fill # Fill window with color as set by :bg
     self.setpos(0, 0)
+    self.bg = 0 if self.bg == nil
+    self.fg = 255 if self.fg == nil
     init_pair(self.fg, self.fg, self.bg)
     blank = " " * self.maxx
     self.maxy.times {self.attron(color_pair(self.fg)) {self << blank}}
