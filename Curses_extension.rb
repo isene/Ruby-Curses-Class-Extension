@@ -21,4 +21,9 @@ class Curses::Window # CLASS EXTENSION
     self.attron(color_pair(self.fg) | self.attr) { self << self.text }
     self.refresh
   end
+  def p(fg, bg, attr, text) # Quick-write to window
+    init_pair(fg, fg, bg)
+    self.attron(color_pair(fg) | attr) { self << text }
+    self.refresh
+  end
 end
