@@ -16,4 +16,7 @@ Function  | Description
 clr       | Clears window without flicker (win.clear flickers)
 fill      | Fill window with color as set by :bg
 write     | Write context of :text to window with attributes :attr
+p         | Basic write with specific fg, bg, attributes and text (`window.p(fg, bg, attr, text)`
 
+## Curses template
+The `curses_template.rb` serves as the basis for my curses applications.
