@@ -2,6 +2,19 @@
 # encoding: utf-8
 
 # This is a basic template for my Curses applications. Feel free to use.
+# 
+# It is an example of a basic curses application with 4 windows like this:
+#
+# +-------------------------------+
+# |                               |
+# +---------------+---------------+
+# |               |               |
+# |               |               |
+# |               |               |
+# |               |               |
+# +---------------+---------------+
+# |                               |
+# +-------------------------------+
 
 require 'io/console'
 require 'curses'
@@ -15,36 +28,47 @@ Curses.cbreak
 Curses.stdscr.keypad = true
 
 class Curses::Window # CLASS EXTENSION 
-  attr_accessor :fg, :bg, :attr, :text, :update, :pager, :pager_more, :pager_cmd, :locate, :nohistory 
   # General extensions (see https://github.com/isene/Ruby-Curses-Class-Extension)
-  def clr
+  attr_accessor :color, :fg, :bg, :attr
+  # Set self.color for an already defined color pair such as: init_pair(1, 255, 3)
+  # The color pair is defined like this: init_pair(index, foreground, background)
+  # self.fg is set for the foreground color (and is used if self.color is not set)
+  # self.bg is set for the background color (and is used if self.color is not set)
+  # self.attr is set for text attributes like Curses::A_BOLD
+  def clr # Clears the whole window
     self.setpos(0, 0)
     self.maxy.times {self.deleteln()}
     self.refresh
     self.setpos(0, 0)
   end
-  def fill # Fill window with color as set by :bg
+  def fill # Fill window with color as set by self.color (or self.bg if not set) 
     self.setpos(0, 0)
-    self.bg = 0 if self.bg   == nil
-    self.fg = 255 if self.fg == nil
-    init_pair(self.fg, self.fg, self.bg)
+    self.fill_from_cur_pos
+  end
+  def fill_from_cur_pos # Fills the rest of the window from current position
+    x = curx
+    y = cury
+    self.setpos(y, x)
     blank = " " * self.maxx
-    self.maxy.times {self.attron(color_pair(self.fg)) {self << blank}}
+    if self.color == nil
+      self.bg = 0 if self.bg   == nil
+      self.fg = 255 if self.fg == nil
+      init_pair(self.fg, self.fg, self.bg)
+      self.maxy.times {self.attron(color_pair(self.fg)) {self << blank}}
+    else
+      self.maxy.times {self.attron(color_pair(self.color)) {self << blank}}
+    end
     self.refresh
-    self.setpos(0, 0)
-  end
-  def write # Write context of :text to window with attributes :attr
-    self.bg   = 0 if self.bg   == nil
-    self.fg   = 255 if self.fg == nil
-    init_pair(self.fg, self.fg, self.bg)
-    self.attr = 0 if self.attr == nil
-    self.attron(color_pair(self.fg) | self.attr) { self << self.text }
-    self.refresh
-    self.text = ""
-  end
-  def p(fg, bg, attr, text)
-    init_pair(fg, fg, bg)
-    self.attron(color_pair(fg) | attr) { self << text }
+    self.setpos(y, x)
+  def p(text) # Puts text to window
+    if self.color == nil
+      self.bg = 0 if self.bg   == nil
+      self.fg = 255 if self.fg == nil
+      init_pair(self.fg, self.fg, self.bg)
+      self.attron(color_pair(self.fg) | self.attr) { self << text }
+    else
+      self.attron(color_pair(self.color) | self.attr) { self << text }
+    end
     self.refresh
   end
 end
@@ -84,8 +108,8 @@ def main_getkey # GET KEY FROM USER
   chr = getchr
   case chr
   when '?' # Show helptext in right window 
-    
-  when 'UP'
+    # Add code to show help text here
+  when 'UP' # Examples of moving up and down in a window
     @index = @index <= @min_index ? @max_index : @index - 1
   when 'DOWN'
     @index = @index >= @max_index ? @min_index : @index + 1
@@ -101,6 +125,8 @@ def main_getkey # GET KEY FROM USER
     @index = @max_index
   when 'l'
     # ...etc
+  when 'r'
+    @break = true
   when 'q' # Exit 
     exit 0
   end
