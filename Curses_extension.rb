@@ -1,29 +1,62 @@
 class Curses::Window # CLASS EXTENSION 
-  attr_accessor :fg, :bg, :attr, :text, :update
-  def clr # Clears window without flicker (win.clear flickers)
+  # General extensions (see https://github.com/isene/Ruby-Curses-Class-Extension)
+  attr_accessor :color, :fg, :bg, :attr
+  # Set self.color for an already defined color pair such as: init_pair(1, 255, 3)
+  # The color pair is defined like this: init_pair(index, foreground, background)
+  # self.fg is set for the foreground color (and is used if self.color is not set)
+  # self.bg is set for the background color (and is used if self.color is not set)
+  # self.attr is set for text attributes like Curses::A_BOLD
+  def clr # Clears the whole window
     self.setpos(0, 0)
     self.maxy.times {self.deleteln()}
     self.refresh
     self.setpos(0, 0)
   end
-  def fill # Fill window with color as set by :bg
+  def fill # Fill window with color as set by self.color (or self.bg if not set) 
     self.setpos(0, 0)
-    self.bg = 0 if self.bg == nil
-    self.fg = 255 if self.fg == nil
-    init_pair(self.fg, self.fg, self.bg)
+    self.fill_from_cur_pos
+  end
+  def fill_from_cur_pos # Fills the rest of the window from current line
+    x = curx
+    y = cury
+    self.setpos(y, 0)
     blank = " " * self.maxx
-    self.maxy.times {self.attron(color_pair(self.fg)) {self << blank}}
+    if self.color == nil
+      self.bg = 0 if self.bg   == nil
+      self.fg = 255 if self.fg == nil
+      init_pair(self.fg, self.fg, self.bg)
+      self.maxy.times {self.attron(color_pair(self.fg)) {self << blank}}
+    else
+      self.maxy.times {self.attron(color_pair(self.color)) {self << blank}}
+    end
     self.refresh
+    self.setpos(y, x)
+  end
+  def fill_to_cur_pos # Fills the window up to current line
+    x = curx
+    y = cury
     self.setpos(0, 0)
-  end
-  def write # Write context of :text to window with attributes :attr
-    init_pair(self.fg, self.fg, self.bg)
-    self.attron(color_pair(self.fg) | self.attr) { self << self.text }
+    blank = " " * self.maxx
+    if self.color == nil
+      self.bg = 0 if self.bg   == nil
+      self.fg = 255 if self.fg == nil
+      init_pair(self.fg, self.fg, self.bg)
+      y.times {self.attron(color_pair(self.fg)) {self << blank}}
+    else
+      y.times {self.attron(color_pair(self.color)) {self << blank}}
+    end
     self.refresh
+    self.setpos(y, x)
   end
-  def p(fg, bg, attr, text) # Quick-write to window
-    init_pair(fg, fg, bg)
-    self.attron(color_pair(fg) | attr) { self << text }
+  def p(text) # Puts text to window
+    if self.color == nil
+      self.bg = 0 if self.bg   == nil
+      self.fg = 255 if self.fg == nil
+      init_pair(self.fg, self.fg, self.bg)
+      self.attron(color_pair(self.fg) | self.attr) { self << text }
+    else
+      self.attron(color_pair(self.color) | self.attr) { self << text }
+    end
     self.refresh
   end
 end

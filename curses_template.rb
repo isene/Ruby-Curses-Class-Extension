@@ -6,14 +6,14 @@
 # It is an example of a basic curses application with 4 windows like this:
 #
 # +-------------------------------+
-# |                               |
+# | @w_t                          |
 # +---------------+---------------+
 # |               |               |
-# |               |               |
+# | @w_l          | @w_r          |
 # |               |               |
 # |               |               |
 # +---------------+---------------+
-# |                               |
+# | @w_b                          |
 # +-------------------------------+
 
 require 'io/console'
@@ -45,10 +45,10 @@ class Curses::Window # CLASS EXTENSION
     self.setpos(0, 0)
     self.fill_from_cur_pos
   end
-  def fill_from_cur_pos # Fills the rest of the window from current position
+  def fill_from_cur_pos # Fills the rest of the window from current line
     x = curx
     y = cury
-    self.setpos(y, x)
+    self.setpos(y, 0)
     blank = " " * self.maxx
     if self.color == nil
       self.bg = 0 if self.bg   == nil
@@ -60,6 +60,23 @@ class Curses::Window # CLASS EXTENSION
     end
     self.refresh
     self.setpos(y, x)
+  end
+  def fill_to_cur_pos # Fills the window up to current line
+    x = curx
+    y = cury
+    self.setpos(0, 0)
+    blank = " " * self.maxx
+    if self.color == nil
+      self.bg = 0 if self.bg   == nil
+      self.fg = 255 if self.fg == nil
+      init_pair(self.fg, self.fg, self.bg)
+      y.times {self.attron(color_pair(self.fg)) {self << blank}}
+    else
+      y.times {self.attron(color_pair(self.color)) {self << blank}}
+    end
+    self.refresh
+    self.setpos(y, x)
+  end
   def p(text) # Puts text to window
     if self.color == nil
       self.bg = 0 if self.bg   == nil
@@ -151,12 +168,9 @@ loop do # OUTER LOOP - (catching refreshes via 'r')
     # Curses::Window.new(h,w,y,x)
     @w_t = Curses::Window.new(1, maxx, 0, 0)
     @w_b = Curses::Window.new(1, maxx, maxy - 1, 0)
-    @w_l = Curses::Window.new(maxy - 2, @w_l_width - 1, 1, 0)
-    @w_u = Curses::Window.new(maxy/2 - 1, maxx - @w_l_width, 1, @w_l_width)
-    @w_d = Curses::Window.new(maxy/2, maxx - @w_l_width, maxy/2, @w_l_width)
+    @w_l = Curses::Window.new(maxy - 2, maxx / 2, 1, 0)
+    @w_r = Curses::Window.new(maxy - 2, maxx / 2, 1, maxx / 2)
     loop do # INNER, CORE LOOP 
-      @min_index = 0
-      @max_index = @weather.size - 1
       # Top window (info line) 
       
       # Bottom window (command line)
