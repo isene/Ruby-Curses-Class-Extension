@@ -49,6 +49,7 @@ class Curses::Window # CLASS EXTENSION
     self.setpos(y, x)
   end
   def p(text) # Puts text to window
+    self.attr = 0 if self.attr == nil
     if self.color == nil
       self.bg = 0 if self.bg   == nil
       self.fg = 255 if self.fg == nil
