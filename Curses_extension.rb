@@ -1,6 +1,6 @@
 class Curses::Window # CLASS EXTENSION 
   # General extensions (see https://github.com/isene/Ruby-Curses-Class-Extension)
-  attr_accessor :color, :fg, :bg, :attr
+  attr_accessor :color, :fg, :bg, :attr, :update
   # Set self.color for an already defined color pair such as: init_pair(1, 255, 3)
   # The color pair is defined like this: init_pair(index, foreground, background)
   # self.fg is set for the foreground color (and is used if self.color is not set)
@@ -58,6 +58,14 @@ class Curses::Window # CLASS EXTENSION
     else
       self.attron(color_pair(self.color) | self.attr) { self << text }
     end
+    self.refresh
+  end
+  def pa(fg, bg, attr, text) # Puts text to window with full set of attributes
+    self.fg = fg
+    self.bg = bg
+    self.attr = attr
+    init_pair(self.fg, self.fg, self.bg)
+    self.attron(color_pair(self.fg) | self.attr) { self << text }
     self.refresh
   end
 end
