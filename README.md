@@ -14,11 +14,15 @@ update				| Whether to update the window on the next refresh
 Function            | Description
 --------------------|--------------------------------------------------------
 clr                 | Clears window without flicker (win.clear flickers)
+clr_to_cur_pos      | Clears the window up to the current line
+clr_from_cur_pos    | Clears the rest of the window after the current line
 fill                | Fill window with color as set by :color ( or :bg if not :color is set)
-fill_from_cur_pos   | Fill the rest of the window after the current line
 fill_to_cur_pos     | Fill the window up to the current line
+fill_from_cur_pos   | Fill the rest of the window after the current line
 p(text)             | Write text to window with color or fg/bg and attributes (will handle the exceptions if no colors are set)
+pclr(text)          | As `p(text)` but also clears the rest of the window
 pa(fg,bg,attr,text) | Write text to window with specified fg, bg and attribute(s)
+paclr(text)         | As `pa(text)` but also clears the rest of the window
 
 ## Curses template
 The `curses_template.rb` includes the class extension and serves as the basis for my curses applications.

@@ -12,29 +12,25 @@ class Curses::Window # CLASS EXTENSION
     self.refresh
     self.setpos(0, 0)
   end
+  def clr_to_cur_line
+    l = self.cury
+    self.setpos(0, 0)
+    l.times {self.deleteln()}
+    self.refresh
+  end
+  def clr_from_cur_line
+    l = self.cury
+    (self.maxy - l).times {self.deleteln()}
+    self.refresh
+    self.setpos(l, 0)
+  end
   def fill # Fill window with color as set by self.color (or self.bg if not set) 
     self.setpos(0, 0)
     self.fill_from_cur_pos
   end
-  def fill_from_cur_pos # Fills the rest of the window from current line
-    x = curx
-    y = cury
-    self.setpos(y, 0)
-    blank = " " * self.maxx
-    if self.color == nil
-      self.bg = 0 if self.bg   == nil
-      self.fg = 255 if self.fg == nil
-      init_pair(self.fg, self.fg, self.bg)
-      self.maxy.times {self.attron(color_pair(self.fg)) {self << blank}}
-    else
-      self.maxy.times {self.attron(color_pair(self.color)) {self << blank}}
-    end
-    self.refresh
-    self.setpos(y, x)
-  end
   def fill_to_cur_pos # Fills the window up to current line
-    x = curx
-    y = cury
+    x = self.curx
+    y = self.cury
     self.setpos(0, 0)
     blank = " " * self.maxx
     if self.color == nil
@@ -44,6 +40,22 @@ class Curses::Window # CLASS EXTENSION
       y.times {self.attron(color_pair(self.fg)) {self << blank}}
     else
       y.times {self.attron(color_pair(self.color)) {self << blank}}
+    end
+    self.refresh
+    self.setpos(y, x)
+  end
+  def fill_from_cur_pos # Fills the rest of the window from current line
+    x = self.curx
+    y = self.cury
+    self.setpos(y, 0)
+    blank = " " * self.maxx
+    if self.color == nil
+      self.bg = 0 if self.bg   == nil
+      self.fg = 255 if self.fg == nil
+      init_pair(self.fg, self.fg, self.bg)
+      self.maxy.times {self.attron(color_pair(self.fg)) {self << blank}}
+    else
+      self.maxy.times {self.attron(color_pair(self.color)) {self << blank}}
     end
     self.refresh
     self.setpos(y, x)
@@ -59,6 +71,14 @@ class Curses::Window # CLASS EXTENSION
       self.attron(color_pair(self.color) | self.attr) { self << text }
     end
     self.refresh
+  end
+  def pclr(text) # Puts text to window and clears the rest of the window
+    self.p(text)
+    self.clr_from_cur_line
+  end
+  def paclr(fg, bg, attr, text) # Puts text to window with full set of attributes and clears rest of window
+    self.paclr(fg, bg, attr, text)
+    self.clr_from_cur_line
   end
   def pa(fg, bg, attr, text) # Puts text to window with full set of attributes
     self.fg = fg
