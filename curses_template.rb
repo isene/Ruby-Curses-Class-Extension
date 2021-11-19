@@ -120,7 +120,7 @@ class Curses::Window # CLASS EXTENSION
 end
 
 def getchr # PROCESS KEY PRESSES
-  c = STDIN.getch(min: 0, time: 0.1)
+  c = STDIN.getch(min: 0, time: 1)
   case c
   when "\e"    # ANSI escape sequences
     case $stdin.getc
