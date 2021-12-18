@@ -131,12 +131,19 @@ def getchr # PROCESS KEY PRESSES
       when 'C' then chr = "RIGHT"
       when 'D' then chr = "LEFT"
       when 'Z' then chr = "S-TAB"
-      when '2' then chr = "INS"    ; STDIN.getc
-      when '3' then chr = "DEL"    ; STDIN.getc
-      when '5' then chr = "PgUP"   ; STDIN.getc
-      when '6' then chr = "PgDOWN" ; STDIN.getc
-      when '7' then chr = "HOME"   ; STDIN.getc
-      when '8' then chr = "END"    ; STDIN.getc
+      when '2' then chr = "INS"    ; chr = "C-INS"    if STDIN.getc == "^"
+      when '3' then chr = "DEL"    ; chr = "C-DEL"    if STDIN.getc == "^"
+      when '5' then chr = "PgUP"   ; chr = "C-PgUP"   if STDIN.getc == "^"
+      when '6' then chr = "PgDOWN" ; chr = "C-PgDOWN" if STDIN.getc == "^"
+      when '7' then chr = "HOME"   ; chr = "C-HOME"   if STDIN.getc == "^"
+      when '8' then chr = "END"    ; chr = "C-END"    if STDIN.getc == "^"
+      end
+    when 'O'
+      case $stdin.getc
+      when 'a' then chr = "C-UP"
+      when 'b' then chr = "C-DOWN"
+      when 'c' then chr = "C-RIGHT"
+      when 'd' then chr = "C-LEFT"
       end
     end
   when "", "" then chr = "BACK"
