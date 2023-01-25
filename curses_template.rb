@@ -117,6 +117,20 @@ class Curses::Window # CLASS EXTENSION
     self.attron(color_pair(self.fg) | self.attr) { self << text }
     self.refresh
   end
+  def puts(text, fg=255, bg=0, attr=0) # Clears window and puts text with optional attributes
+    self.clr
+    self.refresh
+    self.setpos(0, 0)
+    self.print(text, fg, bg, attr)
+  end
+  def print(text, fg=255, bg=0, attr=0) # Print text (from current position) with optional attributes
+    init_pair(fg, fg, bg)
+    self.attron(color_pair(fg) | attr) { self << text }
+    self.refresh
+  end
+  def format_text(text) # Format text so that it linebreaks neatly inside window
+    return "\n" + text.gsub(/(.{1,#{self.maxx}})( +|$\n?)|(.{1,#{self.maxx}})/, "\\1\\3\n")
+  end
 end
 
 def getchr # PROCESS KEY PRESSES
