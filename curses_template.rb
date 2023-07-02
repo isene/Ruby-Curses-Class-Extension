@@ -16,20 +16,23 @@
 # | @w_b                          |
 # +-------------------------------+
 
-require 'io/console'
-require 'curses'
-include  Curses
+begin #Basic setup
+  require 'io/console'
+  require 'io/wait'
+  require 'curses'
+  include  Curses
 
-Curses.init_screen
-Curses.start_color
-Curses.curs_set(0)
-Curses.noecho
-Curses.cbreak
-Curses.stdscr.keypad = true
+  Curses.init_screen
+  Curses.start_color
+  Curses.curs_set(0)
+  Curses.noecho
+  Curses.cbreak
+  Curses.stdscr.keypad = true
+end
 
 class Curses::Window # CLASS EXTENSION 
   # General extensions (see https://github.com/isene/Ruby-Curses-Class-Extension)
-  attr_accessor :color, :fg, :bg, :attr, :update
+  attr_accessor :color, :fg, :bg, :attr, :update, :index
   # Set self.color for an already defined color pair such as: init_pair(1, 255, 3)
   # The color pair is defined like this: init_pair(index, foreground, background)
   # self.fg is set for the foreground color (and is used if self.color is not set)
@@ -133,13 +136,14 @@ class Curses::Window # CLASS EXTENSION
   end
 end
 
-def getchr # PROCESS KEY PRESSES
-  c = STDIN.getch(min: 0, time: 1)
+def getchr # Process key presses
+  c = STDIN.getch
+  #c = STDIN.getch(min: 0, time: 1) # Use this if you need to poll for user keys
   case c
   when "\e"    # ANSI escape sequences
-    case $stdin.getc
+    case STDIN.getc
     when '['   # CSI
-      case $stdin.getc
+      case STDIN.getc
       when 'A' then chr = "UP"
       when 'B' then chr = "DOWN"
       when 'C' then chr = "RIGHT"
@@ -152,8 +156,8 @@ def getchr # PROCESS KEY PRESSES
       when '7' then chr = "HOME"   ; chr = "C-HOME"   if STDIN.getc == "^"
       when '8' then chr = "END"    ; chr = "C-END"    if STDIN.getc == "^"
       end
-    when 'O'
-      case $stdin.getc
+    when 'O'   # Set Ctrl+ArrowKey equal to ArrowKey; May be used for other purposes in the future
+      case STDIN.getc
       when 'a' then chr = "C-UP"
       when 'b' then chr = "C-DOWN"
       when 'c' then chr = "C-RIGHT"
@@ -161,12 +165,22 @@ def getchr # PROCESS KEY PRESSES
       end
     end
   when "", "" then chr = "BACK"
+  when "" then chr = "C-C"
+  when "" then chr = "C-D"
+  when "" then chr = "C-E"
+  when "" then chr = "C-G"
+  when "" then chr = "C-K"
+  when "" then chr = "C-L"
+  when "" then chr = "C-N"
+  when "" then chr = "C-O"
+  when "" then chr = "C-P"
+  when "" then chr = "C-T"
+  when "" then chr = "C-Y"
   when "" then chr = "WBACK"
   when "" then chr = "LDEL"
-  when "" then chr = "C-T"
   when "\r" then chr = "ENTER"
   when "\t" then chr = "TAB"
-  when /./  then chr = c
+  when /[[:print:]]/  then chr = c
   end
   return chr
 end
@@ -196,6 +210,9 @@ def main_getkey # GET KEY FROM USER
     @break = true
   when 'q' # Exit 
     exit 0
+  end
+  while STDIN.ready?
+    chr = STDIN.getc
   end
 end
 

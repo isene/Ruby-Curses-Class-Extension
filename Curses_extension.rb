@@ -1,6 +1,6 @@
 class Curses::Window # CLASS EXTENSION 
   # General extensions (see https://github.com/isene/Ruby-Curses-Class-Extension)
-  attr_accessor :color, :fg, :bg, :attr, :update
+  attr_accessor :color, :fg, :bg, :attr, :update, :index
   # Set self.color for an already defined color pair such as: init_pair(1, 255, 3)
   # The color pair is defined like this: init_pair(index, foreground, background)
   # self.fg is set for the foreground color (and is used if self.color is not set)
@@ -103,3 +103,5 @@ class Curses::Window # CLASS EXTENSION
     return "\n" + text.gsub(/(.{1,#{self.maxx}})( +|$\n?)|(.{1,#{self.maxx}})/, "\\1\\3\n")
   end
 end
+
+# vim: set sw=2 sts=2 et fdm=syntax fdn=2 fcs=fold\:\ :
