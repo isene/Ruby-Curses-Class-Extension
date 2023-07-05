@@ -8,8 +8,8 @@
 # +-------------------------------+
 # | @w_t                          |
 # +---------------+---------------+
-# |               |               |
 # | @w_l          | @w_r          |
+# |               |               |
 # |               |               |
 # |               |               |
 # +---------------+---------------+
@@ -32,12 +32,27 @@ end
 
 class Curses::Window # CLASS EXTENSION 
   # General extensions (see https://github.com/isene/Ruby-Curses-Class-Extension)
-  attr_accessor :color, :fg, :bg, :attr, :update, :index
-  # Set self.color for an already defined color pair such as: init_pair(1, 255, 3)
-  # The color pair is defined like this: init_pair(index, foreground, background)
-  # self.fg is set for the foreground color (and is used if self.color is not set)
-  # self.bg is set for the background color (and is used if self.color is not set)
+  # This is a class extension to Ruby Curses - a class in dire need of such.
+  # self.pair keeps a registry of colors as they are encountered - defined with: 
+  # init_pair(index, foreground, background)
+  # self.fg is set for the foreground color
+  # self.bg is set for the background color
   # self.attr is set for text attributes like Curses::A_BOLD
+  # self.update can be used to indicate if a window should be updated (true/false)
+  # self.index can be used to keep track of the current list item in a window
+  attr_accessor :fg, :bg, :attr, :text, :update, :index
+  def self.pair(fg, bg)
+    @p = [[]] if @p == nil
+    fg = fg.to_i; bg = bg.to_i
+    if @p.include?([fg,bg])
+      @p.index([fg,bg])
+    else
+      @p.push([fg,bg])
+      cp = @p.index([fg,bg])
+      init_pair(cp, fg, bg)
+      @p.index([fg,bg])
+    end
+  end
   def clr # Clears the whole window
     self.setpos(0, 0)
     self.maxy.times {self.deleteln()}
@@ -64,15 +79,11 @@ class Curses::Window # CLASS EXTENSION
     x = self.curx
     y = self.cury
     self.setpos(0, 0)
+    self.bg = 0 if self.bg   == nil
+    self.fg = 255 if self.fg == nil
     blank = " " * self.maxx
-    if self.color == nil
-      self.bg = 0 if self.bg   == nil
-      self.fg = 255 if self.fg == nil
-      init_pair(self.fg, self.fg, self.bg)
-      y.times {self.attron(color_pair(self.fg)) {self << blank}}
-    else
-      y.times {self.attron(color_pair(self.color)) {self << blank}}
-    end
+    cp = Curses::Window.pair(self.fg, self.bg)
+    y.times {self.attron(color_pair(cp)) {self << blank}}
     self.refresh
     self.setpos(y, x)
   end
@@ -80,60 +91,47 @@ class Curses::Window # CLASS EXTENSION
     x = self.curx
     y = self.cury
     self.setpos(y, 0)
+    self.bg = 0 if self.bg   == nil
+    self.fg = 255 if self.fg == nil
     blank = " " * self.maxx
-    if self.color == nil
-      self.bg = 0 if self.bg   == nil
-      self.fg = 255 if self.fg == nil
-      init_pair(self.fg, self.fg, self.bg)
-      self.maxy.times {self.attron(color_pair(self.fg)) {self << blank}}
-    else
-      self.maxy.times {self.attron(color_pair(self.color)) {self << blank}}
-    end
+    cp = Curses::Window.pair(self.fg, self.bg)
+    self.maxy.times {self.attron(color_pair(cp)) {self << blank}}
     self.refresh
     self.setpos(y, x)
   end
+  def write
+    self.attr = 0 if self.attr == nil
+    self.bg = 0 if self.bg   == nil
+    self.fg = 255 if self.fg == nil
+    cp = Curses::Window.pair(self.fg, self.bg)
+    self.attron(color_pair(cp) | self.attr) { self << self.text }
+    self.refresh
+  end
   def p(text) # Puts text to window
     self.attr = 0 if self.attr == nil
-    if self.color == nil
-      self.bg = 0 if self.bg   == nil
-      self.fg = 255 if self.fg == nil
-      init_pair(self.fg, self.fg, self.bg)
-      self.attron(color_pair(self.fg) | self.attr) { self << text }
-    else
-      self.attron(color_pair(self.color) | self.attr) { self << text }
-    end
+    self.bg = 0 if self.bg   == nil
+    self.fg = 255 if self.fg == nil
+    cp = Curses::Window.pair(self.fg, self.bg)
+    self.attron(color_pair(cp) | attr) { self << text }
     self.refresh
   end
   def pclr(text) # Puts text to window and clears the rest of the window
     self.p(text)
     self.clr_from_cur_line
   end
-  def paclr(fg, bg, attr, text) # Puts text to window with full set of attributes and clears rest of window
-    self.paclr(fg, bg, attr, text)
+  def pa(fg = self.fg, bg = self.bg, attr = self.attr, text) # Puts text to window with full set of attributes
+    cp = Curses::Window.pair(fg, bg)
+    self.attron(color_pair(cp) | attr) { self << text }
+    self.refresh
+  end
+  def paclr(fg = self.fg, bg = self.bg, attr = self.attr, text) # Puts text to window with full set of attributes and clears rest of window
+    self.pa(fg, bg, attr, text)
     self.clr_from_cur_line
-  end
-  def pa(fg, bg, attr, text) # Puts text to window with full set of attributes
-    self.fg = fg
-    self.bg = bg
-    self.attr = attr
-    init_pair(self.fg, self.fg, self.bg)
-    self.attron(color_pair(self.fg) | self.attr) { self << text }
-    self.refresh
-  end
-  def puts(text, fg=255, bg=0, attr=0) # Clears window and puts text with optional attributes
-    self.clr
-    self.refresh
-    self.setpos(0, 0)
-    self.print(text, fg, bg, attr)
-  end
-  def print(text, fg=255, bg=0, attr=0) # Print text (from current position) with optional attributes
-    init_pair(fg, fg, bg)
-    self.attron(color_pair(fg) | attr) { self << text }
-    self.refresh
   end
   def format_text(text) # Format text so that it linebreaks neatly inside window
     return "\n" + text.gsub(/(.{1,#{self.maxx}})( +|$\n?)|(.{1,#{self.maxx}})/, "\\1\\3\n")
   end
+  alias :puts :p
 end
 
 def getchr # Process key presses
@@ -210,6 +208,29 @@ def main_getkey # GET KEY FROM USER
     @break = true
   when 'q' # Exit 
     exit 0
+  when '@' # Enter "Ruby debug"
+    cmd = w_b_getstr("◆ ", "")
+    @w_b.clr
+    @w_b.refresh
+    @w_b.update = true
+    @w_r.clr
+    info = "Command: #{cmd}\n\n"
+    begin
+      info += eval(cmd).to_s
+    rescue Exception => err
+      info += "Error: #{err.inspect}"
+    end
+    w_r_info(info)
+    @w_r.update = false
+    cmd = w_b_getstr("◆ ", "")
+    begin
+      @w_r.text = eval(cmd)
+      #@w_r.fill
+      @w_r.write
+    rescue StandardError => e
+      w_b("Error: #{e.inspect}")
+    end
+    #@w_b.update = false
   end
   while STDIN.ready?
     chr = STDIN.getc
@@ -219,25 +240,102 @@ end
 # TOP WINDOW FUNCTIONS 
 
 # BOTTOM WINDOW FUNCTIONS 
+def w_b(info) # SHOW INFO IN @W_B
+  @w_b.clr
+  info      = "Choose window: i=IMDB list (+/- to add/remove from My list), g=Genres (+/- to add/remove), m=My list. " if info == nil
+  info      = info[1..(@w_b.maxx - 3)] + "…" if info.length + 3 > @w_b.maxx 
+  info     += " " * (@w_b.maxx - info.length) if info.length < @w_b.maxx
+  @w_b.text = info
+  @w_b.write
+  @w_b.update = false
+end
+def w_b_getstr(pretext, text) # A SIMPLE READLINE-LIKE ROUTINE
+  Curses.curs_set(1)
+  Curses.echo
+  stk = 0
+  pos = text.length
+  chr = ""
+  while chr != "ENTER"
+    @w_b.setpos(0,0)
+    @w_b.text = pretext + text
+    @w_b.text += " " * (@w_b.maxx - text.length) if text.length < @w_b.maxx
+    @w_b.write
+    @w_b.setpos(0,pretext.length + pos)
+    @w_b.refresh
+    chr = getchr
+    case chr
+    when 'C-C', 'C-G'
+      return ""
+    when 'RIGHT'
+      pos += 1 unless pos > text.length
+    when 'LEFT'
+      pos -= 1 unless pos == 0
+    when 'HOME'
+      pos = 0
+    when 'END'
+      pos = text.length
+    when 'DEL'
+      text[pos] = ""
+    when 'BACK'
+      unless pos == 0
+        pos -= 1
+        text[pos] = ""
+      end
+    when 'LDEL'
+      text = ""
+      pos = 0
+    when /^.$/
+      text.insert(pos,chr)
+      pos += 1
+    end
+  end
+  Curses.curs_set(0)
+  Curses.noecho
+  return text
+end
 
 # LEFT WINDOW FUNCTIONS
 
 # RIGHT WINDOW FUNCTIONS 
-
+def w_r_info(info) # SHOW INFO IN THE RIGHT WINDOW
+  begin
+    @w_r.clr
+    @w_r.refresh
+    @w_r.text   = info
+    @w_r.write
+    @w_r.update = false
+  rescue
+  end
+end
 
 # MAIN PROGRAM 
 loop do # OUTER LOOP - (catching refreshes via 'r')
   @break = false # Initialize @break variable (set if user hits 'r')
-  begin # Create the four windows/panels 
+  begin # Create the four windows/panes 
     maxx = Curses.cols
-    exit if maxx < @w_l_width
     maxy = Curses.lines
-    # Curses::Window.new(h,w,y,x)
-    @w_t = Curses::Window.new(1, maxx, 0, 0)
-    @w_b = Curses::Window.new(1, maxx, maxy - 1, 0)
-    @w_l = Curses::Window.new(maxy - 2, maxx / 2, 1, 0)
-    @w_r = Curses::Window.new(maxy - 2, maxx / 2, 1, maxx / 2)
+    # Create windows/panes
+    # Curses::Window.new     (     h,      w,      y,      x)
+    @w_t = Curses::Window.new(     1,   maxx,      0,      0)
+    @w_b = Curses::Window.new(     1,   maxx, maxy-1,      0)
+    @w_l = Curses::Window.new(maxy-2, maxx/2,      1,      0)
+    @w_r = Curses::Window.new(maxy-2, maxx/2,      1, maxx/2)
+    # Set foreground and background colors and attributes
+    @w_t.fg, @w_t.bg, @w_t.attr = 255,  23, 0
+    @w_b.fg, @w_b.bg, @w_b.attr = 231, 238, 0
+    @w_l.fg, @w_l.bg, @w_l.attr =  46, 234, 0
+    @w_r.fg, @w_r.bg, @w_r.attr = 202, 235, 0
     loop do # INNER, CORE LOOP 
+      @w_t.fill; @w_b.fill; @w_l.fill; @w_r.fill
+
+      # Example code to write to the panes in various ways
+      @w_t.text = "Top window"
+      @w_t.write
+      @w_b.pa("Bottom window")
+      @w_l.pa(196,182,Curses::A_BOLD,"Left window")
+      @w_r.text = "Right window"
+      @w_r.write
+      
       # Top window (info line) 
       
       # Bottom window (command line)
@@ -246,9 +344,10 @@ loop do # OUTER LOOP - (catching refreshes via 'r')
 
       # Right window
 
-      main_getkey        # Get key from user 
+      # Get key from user 
+      main_getkey
 
-      break if @break    # Break to outer loop, redrawing windows, if user hit 'r'
+      break if @break    # Break to outer loop, redrawing windows, if user hits 'r'
       break if Curses.cols != maxx or Curses.lines != maxy # break on terminal resize 
     end
   ensure # On exit: close curses, clear terminal 
