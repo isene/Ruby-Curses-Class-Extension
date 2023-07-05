@@ -1,6 +1,12 @@
 # Ruby-Curses-Class-Extension
 Extending the Ruby Curses module with some obvious needed functionality.
 
+With this extension, you don't need to initiate any color pairs or add text to
+windows with odd syntax. Use any foreground and backround color you see fit
+and let this extension take care of the weird need to pair colors and initiate
+the color pairs. You also get a bunch of extra methods to manipulate curses
+windows.
+
 ## Attributes
 Attribute           | Description
 --------------------|--------------------------------------------------------
