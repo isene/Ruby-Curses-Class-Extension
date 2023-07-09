@@ -40,7 +40,7 @@ class Curses::Window # CLASS EXTENSION
   # self.attr is set for text attributes like Curses::A_BOLD
   # self.update can be used to indicate if a window should be updated (true/false)
   # self.index can be used to keep track of the current list item in a window
-  attr_accessor :fg, :bg, :attr, :text, :update, :index
+  attr_accessor :fg, :bg, :attr, :update, :index
   def self.pair(fg, bg)
     @p = [[]] if @p == nil
     fg = fg.to_i; bg = bg.to_i
@@ -99,36 +99,24 @@ class Curses::Window # CLASS EXTENSION
     self.refresh
     self.setpos(y, x)
   end
-  def write
-    self.attr = 0 if self.attr == nil
-    self.bg = 0 if self.bg   == nil
-    self.fg = 255 if self.fg == nil
-    cp = Curses::Window.pair(self.fg, self.bg)
-    self.attron(color_pair(cp) | self.attr) { self << self.text }
-    self.refresh
-  end
-  def p(text) # Puts text to window
-    self.attr = 0 if self.attr == nil
-    self.bg = 0 if self.bg   == nil
-    self.fg = 255 if self.fg == nil
-    cp = Curses::Window.pair(self.fg, self.bg)
+  def p(fg = self.fg, bg = self.bg, attr = self.attr, text) # Puts text to window with full set of attributes
+    fg   = 255 if fg   == nil
+    bg   = 0   if bg   == nil
+    attr = 0   if attr == nil
+    cp   = Curses::Window.pair(fg, bg)
     self.attron(color_pair(cp) | attr) { self << text }
     self.refresh
   end
-  def pclr(text) # Puts text to window and clears the rest of the window
-    self.p(text)
+  def nl(bg = self.bg)
+    bg = 232 if bg == nil
+    f  = " " * (self.maxx - self.curx)
+    self.p(self.fg, bg, self.attr, f)
+  end
+  def pclr(fg = self.fg, bg = self.bg, attr = self.attr, text) # Puts text to window with full set of attributes and clears rest of window
+    self.p(fg, bg, attr, text)
     self.clr_from_cur_line
   end
-  def pa(fg = self.fg, bg = self.bg, attr = self.attr, text) # Puts text to window with full set of attributes
-    cp = Curses::Window.pair(fg, bg)
-    self.attron(color_pair(cp) | attr) { self << text }
-    self.refresh
-  end
-  def paclr(fg = self.fg, bg = self.bg, attr = self.attr, text) # Puts text to window with full set of attributes and clears rest of window
-    self.pa(fg, bg, attr, text)
-    self.clr_from_cur_line
-  end
-  def format_text(text) # Format text so that it linebreaks neatly inside window
+  def format(text) # Format text so that it linebreaks neatly inside window
     return "\n" + text.gsub(/(.{1,#{self.maxx}})( +|$\n?)|(.{1,#{self.maxx}})/, "\\1\\3\n")
   end
   alias :puts :p
@@ -224,9 +212,8 @@ def main_getkey # GET KEY FROM USER
     @w_r.update = false
     cmd = w_b_getstr("◆ ", "")
     begin
-      @w_r.text = eval(cmd)
-      #@w_r.fill
-      @w_r.write
+      @w_r.fill
+      @w_r.p(eval(cmd))
     rescue StandardError => e
       w_b("Error: #{e.inspect}")
     end
@@ -245,8 +232,7 @@ def w_b(info) # SHOW INFO IN @W_B
   info      = "Choose window: i=IMDB list (+/- to add/remove from My list), g=Genres (+/- to add/remove), m=My list. " if info == nil
   info      = info[1..(@w_b.maxx - 3)] + "…" if info.length + 3 > @w_b.maxx 
   info     += " " * (@w_b.maxx - info.length) if info.length < @w_b.maxx
-  @w_b.text = info
-  @w_b.write
+  @w_b.p(info)
   @w_b.update = false
 end
 def w_b_getstr(pretext, text) # A SIMPLE READLINE-LIKE ROUTINE
@@ -257,9 +243,9 @@ def w_b_getstr(pretext, text) # A SIMPLE READLINE-LIKE ROUTINE
   chr = ""
   while chr != "ENTER"
     @w_b.setpos(0,0)
-    @w_b.text = pretext + text
-    @w_b.text += " " * (@w_b.maxx - text.length) if text.length < @w_b.maxx
-    @w_b.write
+    text = pretext + text
+    text += " " * (@w_b.maxx - text.length) if text.length < @w_b.maxx
+    @w_b.p(text)
     @w_b.setpos(0,pretext.length + pos)
     @w_b.refresh
     chr = getchr
@@ -301,8 +287,7 @@ def w_r_info(info) # SHOW INFO IN THE RIGHT WINDOW
   begin
     @w_r.clr
     @w_r.refresh
-    @w_r.text   = info
-    @w_r.write
+    @w_r.p(info)
     @w_r.update = false
   rescue
   end
@@ -329,12 +314,10 @@ loop do # OUTER LOOP - (catching refreshes via 'r')
       @w_t.fill; @w_b.fill; @w_l.fill; @w_r.fill
 
       # Example code to write to the panes in various ways
-      @w_t.text = "Top window"
-      @w_t.write
-      @w_b.pa("Bottom window")
-      @w_l.pa(196,182,Curses::A_BOLD,"Left window")
-      @w_r.text = "Right window"
-      @w_r.write
+      @w_t.p("Top window")
+      @w_b.p("Bottom window")
+      @w_l.p(196,182,Curses::A_BOLD,"Left window")
+      @w_r.p("Right window")
       
       # Top window (info line) 
       
