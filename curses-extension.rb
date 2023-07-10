@@ -84,6 +84,12 @@ class Curses::Window # CLASS EXTENSION
     self.p(fg, bg, attr, text)
     self.clr_from_cur_line
   end
+  def frame(fg = self.fg, bg = self.bg)
+    self.setpos(0,0)
+    self.p("┌" + "─"*(self.maxx-2) + "┐")
+    (self.maxy-2).times {self.p("│" + " "*(self.maxx-2) + "│")}
+    self.p("└" + "─"*(self.maxx-2) + "┘")
+  end
   def format(text) # Format text so that it linebreaks neatly inside window
     return "\n" + text.gsub(/(.{1,#{self.maxx}})( +|$\n?)|(.{1,#{self.maxx}})/, "\\1\\3\n")
   end

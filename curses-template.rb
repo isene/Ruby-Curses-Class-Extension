@@ -116,12 +116,19 @@ class Curses::Window # CLASS EXTENSION
     self.p(fg, bg, attr, text)
     self.clr_from_cur_line
   end
+  def frame(fg = self.fg, bg = self.bg)
+    self.setpos(0,0)
+    self.p("┌" + "─"*(self.maxx-2) + "┐")
+    (self.maxy-2).times {self.p("│" + " "*(self.maxx-2) + "│")}
+    self.p("└" + "─"*(self.maxx-2) + "┘")
+  end
   def format(text) # Format text so that it linebreaks neatly inside window
     return "\n" + text.gsub(/(.{1,#{self.maxx}})( +|$\n?)|(.{1,#{self.maxx}})/, "\\1\\3\n")
   end
   alias :puts :p
 end
 
+# GENERAL FUNCTIONS 
 def getchr # Process key presses
   c = STDIN.getch
   #c = STDIN.getch(min: 0, time: 1) # Use this if you need to poll for user keys
@@ -170,27 +177,51 @@ def getchr # Process key presses
   end
   return chr
 end
-
 def main_getkey # GET KEY FROM USER
   chr = getchr
   case chr
-  when '?' # Show helptext in right window 
-    # Add code to show help text here
-  when 'UP' # Examples of moving up and down in a window
-    @index = @index <= @min_index ? @max_index : @index - 1
+  when '?' # Show helptext in right window - add code to show help text here
+  @w_t.clr
+  @w_t.p("Try pressing 'w'")
+  @w_t.nl
+  @w_t.update = false
+  # Examples of moving up and down in a window
+  # You must set @min_index and @max_index in the main loop of the program 
+  when 'UP' 
+    @w_l.index = @w_l.index <= @min_index ? @max_index : @w_l.index - 1
   when 'DOWN'
-    @index = @index >= @max_index ? @min_index : @index + 1
+    @w_l.index = @w_l.index >= @max_index ? @min_index : @w_l.index + 1
   when 'PgUP'
-    @index -= @w_l.maxy - 2
-    @index = @min_index if @index < @min_index
+    @w_l.index -= @w_l.maxy - 2
+    @w_l.index = @min_index if @w_l.index < @min_index
   when 'PgDOWN'
-    @index += @w_l.maxy - 2
-    @index = @max_index if @index > @max_index
+    @w_l.index += @w_l.maxy - 2
+    @w_l.index = @max_index if @w_l.index > @max_index
   when 'HOME'
-    @index = @min_index
+    @w_l.index = @min_index
   when 'END'
-    @index = @max_index
-  when 'l'
+    @w_l.index = @max_index
+  when 'w' # Shows how you can add a window and get input from there and then close the window
+    maxx = Curses.cols
+    maxy = Curses.lines
+    # Curses::Window.new     (     h,      w,        y,         x)
+    @w_w = Curses::Window.new(     6,     20, maxy/2-3, maxx/2-10)
+    @w_w.fg, @w_w.bg, @w_w.attr = 255, 233, Curses::A_BOLD
+    @w_w.frame
+    @w_w.setpos(4, 7) 
+    @w_w.p(255,130," y/n? ")
+    chrw = getchr
+    case chrw
+    when 'y'
+      @w_w.setpos(4, 7) 
+      @w_w.p(255,22," YES! ")
+    when 'n'
+      @w_w.setpos(4, 7) 
+      @w_w.p(255,52," NO!! ")
+    end
+    chrw = getchr
+    @w_w.close
+  when 'a'
     # ...etc
   when 'r'
     @break = true
@@ -310,13 +341,15 @@ loop do # OUTER LOOP - (catching refreshes via 'r')
     @w_b.fg, @w_b.bg, @w_b.attr = 231, 238, 0
     @w_l.fg, @w_l.bg, @w_l.attr =  46, 234, 0
     @w_r.fg, @w_r.bg, @w_r.attr = 202, 235, 0
+    @w_t.fill
     loop do # INNER, CORE LOOP 
-      @w_t.fill; @w_b.fill; @w_l.fill; @w_r.fill
-
+      @w_b.fill; @w_l.fill; @w_r.fill
       # Example code to write to the panes in various ways
-      @w_t.p("Top window")
-      @w_b.p("Bottom window")
+      @w_t.p("Top window") unless @w_t.update == false
+      @w_b.p("Bottom window - try pressing '?'")
+      @w_l.setpos(@w_l.maxy/2, @w_l.maxx/2-6)
       @w_l.p(196,182,Curses::A_BOLD,"Left window")
+      @w_r.setpos(@w_r.maxy/2, @w_r.maxx/2-7)
       @w_r.p("Right window")
       
       # Top window (info line) 
