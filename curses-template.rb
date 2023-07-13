@@ -1,7 +1,7 @@
 #!/usr/bin/env ruby
 # encoding: utf-8
 
-# This is a basic template for my Curses applications. Feel free to use.
+# This is a basic template for my? Curses applications. Feel free to use.
 # 
 # It is an example of a basic curses application with 4 windows like this:
 #
@@ -40,8 +40,8 @@ class Curses::Window # CLASS EXTENSION
   # self.attr is set for text attributes like Curses::A_BOLD
   # self.update can be used to indicate if a window should be updated (true/false)
   # self.index can be used to keep track of the current list item in a window
-  attr_accessor :fg, :bg, :attr, :update, :index
-  def self.pair(fg, bg)
+  attr_accessor :fg, :bg, :attr, :framed, :update, :index
+  def self.pair(fg, bg) # INTERNAL FUNCTION
     @p = [[]] if @p == nil
     fg = fg.to_i; bg = bg.to_i
     if @p.include?([fg,bg])
@@ -53,53 +53,64 @@ class Curses::Window # CLASS EXTENSION
       @p.index([fg,bg])
     end
   end
-  def clr # Clears the whole window
-    self.setpos(0, 0)
-    self.maxy.times {self.deleteln()}
+  def x? # GET THE CURRENT X (COLUMN)
+    x  = self.curx
+    x -= 1 if self.framed
+    x
+  end
+  def y? # GET THE CURRENT Y (ROW)
+    y  = self.cury
+    y -= 1 if self.framed
+    y
+  end
+  def mx? # GET THE MAXIMUM X (COLUMN)
+    mx  = self.maxx
+    mx -= 2 if self.framed
+    mx
+  end
+  def my? # GET THE MAXIMUM Y (ROW)
+    my  = self.maxy
+    my -= 2 if self.framed
+    my
+  end
+  def x(x) # SET/GOTO X (COLUMN)
+    x  += 1 if self.framed
+    mx  = self.mx?
+    x   = mx if x > mx
+    y   = self.cury
+    self.setpos(y,x)
+  end
+  def y(y) # SET/GOTO Y (ROW)
+    y  += 1 if self.framed
+    my  = self.my?
+    y   = my if y > my
+    x   = self.curx
+    self.setpos(y,x)
+  end
+  def xy(x,y) # SET/GOTO X & Y (COLUMN & ROW)
+    x  += 1 if self.framed
+    y  += 1 if self.framed
+    mx  = self.mx?
+    x   = mx if x > mx?
+    my  = self.my?
+    y   = my if y > my?
+    self.setpos(y,x)
+  end
+  def fill(bg = self.bg, l1 = 0, l2 = self.my?) # FILL WINDOW WITH BG COLOR FROM LINES L1 TO L2 
+    self.xy(0, l1)
+    bg    = 0 if self.bg == nil
+    blank = " " * self.mx?
+    cp    = Curses::Window.pair(0, bg)
+    lines = l2 - l1
+    lines.times do
+      y = self.y?
+      self.attron(color_pair(cp)) {self << blank}
+      self.xy(0,y+1)
+    end
     self.refresh
-    self.setpos(0, 0)
+    self.xy(0, 0)
   end
-  def clr_to_cur_line
-    l = self.cury
-    self.setpos(0, 0)
-    l.times {self.deleteln()}
-    self.refresh
-  end
-  def clr_from_cur_line
-    l = self.cury
-    (self.maxy - l).times {self.deleteln()}
-    self.refresh
-    self.setpos(l, 0)
-  end
-  def fill # Fill window with color as set by self.color (or self.bg if not set) 
-    self.setpos(0, 0)
-    self.fill_from_cur_pos
-  end
-  def fill_to_cur_pos # Fills the window up to current line
-    x = self.curx
-    y = self.cury
-    self.setpos(0, 0)
-    self.bg = 0 if self.bg   == nil
-    self.fg = 255 if self.fg == nil
-    blank = " " * self.maxx
-    cp = Curses::Window.pair(self.fg, self.bg)
-    y.times {self.attron(color_pair(cp)) {self << blank}}
-    self.refresh
-    self.setpos(y, x)
-  end
-  def fill_from_cur_pos # Fills the rest of the window from current line
-    x = self.curx
-    y = self.cury
-    self.setpos(y, 0)
-    self.bg = 0 if self.bg   == nil
-    self.fg = 255 if self.fg == nil
-    blank = " " * self.maxx
-    cp = Curses::Window.pair(self.fg, self.bg)
-    self.maxy.times {self.attron(color_pair(cp)) {self << blank}}
-    self.refresh
-    self.setpos(y, x)
-  end
-  def p(fg = self.fg, bg = self.bg, attr = self.attr, text) # Puts text to window with full set of attributes
+  def p(fg = self.fg, bg = self.bg, attr = self.attr, text) # PUTS TEXT TO WINDOW WITH FULL SET OF ATTRIBUTES
     fg   = 255 if fg   == nil
     bg   = 0   if bg   == nil
     attr = 0   if attr == nil
@@ -107,25 +118,49 @@ class Curses::Window # CLASS EXTENSION
     self.attron(color_pair(cp) | attr) { self << text }
     self.refresh
   end
-  def nl(bg = self.bg)
+  def nl(bg = self.bg) # ADD NEWLINE
+    y  = self.y?
     bg = 232 if bg == nil
-    f  = " " * (self.maxx - self.curx)
+    f  = " " * (self.mx? - self.x?)
     self.p(self.fg, bg, self.attr, f)
+    self.xy(0,y+1)
   end
-  def pclr(fg = self.fg, bg = self.bg, attr = self.attr, text) # Puts text to window with full set of attributes and clears rest of window
+  def p0(fg = self.fg, bg = self.bg, attr = self.attr, text) # PUTS TEXT AT 0,0 AND CLEARS THE REST OF THE LINE
+    self.xy(0, 0)
     self.p(fg, bg, attr, text)
-    self.clr_from_cur_line
+    self.nl(bg)
+    self.xy(0, 0)
   end
-  def frame(fg = self.fg, bg = self.bg)
+  def frame(fg = self.fg, bg = self.bg) # TOGGLE FRAMING OF THE WINDOW
+    fr = self.framed
+    tl = self.framed ? " " : "┌"
+    tc = self.framed ? " " : "─"
+    tr = self.framed ? " " : "┐"
+    lr = self.framed ? " " : "│"
+    bl = self.framed ? " " : "└"
+    bc = self.framed ? " " : "─"
+    br = self.framed ? " " : "┘"
     self.setpos(0,0)
-    self.p("┌" + "─"*(self.maxx-2) + "┐")
-    (self.maxy-2).times {self.p("│" + " "*(self.maxx-2) + "│")}
-    self.p("└" + "─"*(self.maxx-2) + "┘")
+    self.p(tl + tc*(self.maxx-2) + tr)
+    (self.maxy-2).times do
+      y  = self.cury
+      mx = self.maxx
+      self.setpos(y,0);      self.p(lr)
+      self.setpos(y,maxx-1); self.p(lr)
+    end
+    self.p(bl + bc*(self.maxx-2) + br)
+    if self.framed == nil
+      self.framed = true
+    else
+      self.framed = !self.framed
+    end
+    self.xy(0,0)
   end
-  def format(text) # Format text so that it linebreaks neatly inside window
+  def format(text) # FORMAT TEXT SO THAT IT LINEBREAKS NEATLY INSIDE WINDOW
     return "\n" + text.gsub(/(.{1,#{self.maxx}})( +|$\n?)|(.{1,#{self.maxx}})/, "\\1\\3\n")
   end
   alias :puts :p
+  alias :puts0 :p0
 end
 
 # GENERAL FUNCTIONS 
@@ -181,10 +216,8 @@ def main_getkey # GET KEY FROM USER
   chr = getchr
   case chr
   when '?' # Show helptext in right window - add code to show help text here
-  @w_t.clr
-  @w_t.p("Try pressing 'w'")
-  @w_t.nl
-  @w_t.update = false
+    @w_t.p0(255,27,"Try pressing 'w'")
+    @w_t.update = false
   # Examples of moving up and down in a window
   # You must set @min_index and @max_index in the main loop of the program 
   when 'UP' 
@@ -220,7 +253,8 @@ def main_getkey # GET KEY FROM USER
       @w_w.p(255,52," NO!! ")
     end
     chrw = getchr
-    @w_w.close
+    @w_l.fill; @w_r.fill # Fill the underlying windows to remove the overlaying window
+    @w_w.close # Remove the overlying window from memory
   when 'a'
     # ...etc
   when 'r'
@@ -229,10 +263,8 @@ def main_getkey # GET KEY FROM USER
     exit 0
   when '@' # Enter "Ruby debug"
     cmd = w_b_getstr("◆ ", "")
-    @w_b.clr
-    @w_b.refresh
     @w_b.update = true
-    @w_r.clr
+    @w_r.fill
     info = "Command: #{cmd}\n\n"
     begin
       info += eval(cmd).to_s
@@ -247,8 +279,8 @@ def main_getkey # GET KEY FROM USER
       @w_r.p(eval(cmd))
     rescue StandardError => e
       w_b("Error: #{e.inspect}")
+      chr = STDIN.getc
     end
-    #@w_b.update = false
   end
   while STDIN.ready?
     chr = STDIN.getc
@@ -259,11 +291,12 @@ end
 
 # BOTTOM WINDOW FUNCTIONS 
 def w_b(info) # SHOW INFO IN @W_B
-  @w_b.clr
-  info      = "Choose window: i=IMDB list (+/- to add/remove from My list), g=Genres (+/- to add/remove), m=My list. " if info == nil
-  info      = info[1..(@w_b.maxx - 3)] + "…" if info.length + 3 > @w_b.maxx 
-  info     += " " * (@w_b.maxx - info.length) if info.length < @w_b.maxx
+  @w_b.fill
+  info      = "Choose window: i=IMDB list (+/- to add/remove from my? list), g=Genres (+/- to add/remove), m=my? list. " if info == nil
+  info      = info[1..(@w_b.mx? - 3)] + "…" if info.length + 3 > @w_b.mx? 
+  info     += " " * (@w_b.mx? - info.length) if info.length < @w_b.mx?
   @w_b.p(info)
+  @w_b.nl
   @w_b.update = false
 end
 def w_b_getstr(pretext, text) # A SIMPLE READLINE-LIKE ROUTINE
@@ -273,11 +306,10 @@ def w_b_getstr(pretext, text) # A SIMPLE READLINE-LIKE ROUTINE
   pos = text.length
   chr = ""
   while chr != "ENTER"
-    @w_b.setpos(0,0)
-    text = pretext + text
-    text += " " * (@w_b.maxx - text.length) if text.length < @w_b.maxx
-    @w_b.p(text)
-    @w_b.setpos(0,pretext.length + pos)
+    @w_b.xy(0,0)
+    @w_b.p(pretext + text)
+    @w_b.nl
+    @w_b.xy(pretext.length + pos,0)
     @w_b.refresh
     chr = getchr
     case chr
@@ -306,8 +338,8 @@ def w_b_getstr(pretext, text) # A SIMPLE READLINE-LIKE ROUTINE
       pos += 1
     end
   end
-  Curses.curs_set(0)
-  Curses.noecho
+  Curses.curs_set(1); Curses.curs_set(0) 
+  #Curses.noecho
   return text
 end
 
@@ -339,18 +371,24 @@ loop do # OUTER LOOP - (catching refreshes via 'r')
     # Set foreground and background colors and attributes
     @w_t.fg, @w_t.bg, @w_t.attr = 255,  23, 0
     @w_b.fg, @w_b.bg, @w_b.attr = 231, 238, 0
-    @w_l.fg, @w_l.bg, @w_l.attr =  46, 234, 0
+    @w_l.fg, @w_l.bg, @w_l.attr =  24, 233, 0
     @w_r.fg, @w_r.bg, @w_r.attr = 202, 235, 0
-    @w_t.fill
+    @w_t.update = true
+    @w_b.update = true
+    @w_l.update = true
+    @w_r.update = true
+    @w_l.fill; @w_r.fill
     loop do # INNER, CORE LOOP 
-      @w_b.fill; @w_l.fill; @w_r.fill
       # Example code to write to the panes in various ways
-      @w_t.p("Top window") unless @w_t.update == false
-      @w_b.p("Bottom window - try pressing '?'")
-      @w_l.setpos(@w_l.maxy/2, @w_l.maxx/2-6)
-      @w_l.p(196,182,Curses::A_BOLD,"Left window")
-      @w_r.setpos(@w_r.maxy/2, @w_r.maxx/2-7)
-      @w_r.p("Right window")
+      @w_t.p0("Top window") if @w_t.update
+      @w_b.p0("Bottom window - try pressing '?'") if @w_b.update
+      @w_l.frame
+      @w_l.xy(@w_l.mx?/2-6, @w_l.my?/2)
+      @w_l.p(87,17,Curses::A_BOLD,"Left window")
+      @w_l.fill(24, 1, 2)
+      @w_l.fill(24,@w_l.my?-2,@w_l.my?-1)
+      @w_r.xy(@w_r.mx?/2-7, @w_r.my?/2)
+      @w_r.p("Right window") if @w_r.update
       
       # Top window (info line) 
       
@@ -359,6 +397,9 @@ loop do # OUTER LOOP - (catching refreshes via 'r')
       # Left window
 
       # Right window
+
+      # Clear residual cursor
+      Curses.curs_set(1); Curses.curs_set(0) 
 
       # Get key from user 
       main_getkey

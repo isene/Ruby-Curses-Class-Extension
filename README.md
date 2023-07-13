@@ -20,7 +20,7 @@ the text in bold green on a gray background.
 There is also the handy method `nl` that fills the rest of the line with
 spaces and (optional) background color, making it an effective newline.
 
-And then there is the convenient `frame`method that adds a... frame to the
+And then there is the convenient `frame`method that toggles a frame for the
 window.
 
 The `curses-template.rb` contains code that helps you understand how you can
@@ -33,27 +33,34 @@ Attribute           | Description
 --------------------|--------------------------------------------------------
 fg                  | Foreground color for window (0-255)
 bg                  | Background color for window (0-255)
-attr                | Attributes for window (such as Curses::A_BOLD) - string with "\|" (such as Curses::A_BOLD \| Curses::A_UNDERLINE)
+attr                | Attributes for window (such as Curses::A_BOLD) - combine with "\|" (such as Curses::A_BOLD \| Curses::A_UNDERLINE)
 update				| Whether to update the window on the next refresh
 index				| Used to track an index for each window (used to display lists such as the content of a directory, etc.)
 
-## Functions
+## Functions/Methods
+Each window has an additional set of methods/functions to the original Curses library.
+
+In this extended set of methods/functions, the ones ending in a question mark
+(like `x?`) is a query and will return a value, while the others will set a
+value or create something.
+
 Parameters in square are optional.
 
-Function							| Description
-------------------------------------|--------------------------------------------------------
-clr							| Clears window without flicker (win.clear flickers)
-clr_to_cur_line				| Clears the window up to the current line
-clr_from_cur_line			| Clears the rest of the window after the current line
-fill						| Fill window with color as set by :color ( or :bg if not :color is set)
-fill_to_cur_pos				| Fill the window up to the current line
-fill_from_cur_pos			| Fill the rest of the window after the current line
-p([fg], [bg], [attr], text)	| Write text to window with fg/bg and attributes (will handle the exceptions if no colors are set)
-							  You can use `puts` instead of `p` (it's an alias). `fg`, `bg` and `attr` are optional parameters
-pclr(text)					| As `p(text)` but also clears the rest of the window
-nl([bg])                    | Newline. Puts spaces with (optional) background colors until the end of the line
-frame([fg],[bg])			| Frame the window
-format(text)				| Format text so that it linebreaks neatly inside window
+Function					 | Description
+-----------------------------|-------------------------------------------------------
+x?							 | Get the current x (column)
+y?							 | Get the current y (row)
+mx?							 | Get the maximum x (column)
+my?							 | Get the maximum y (row)
+x(x)						 | Set/goto x (column)
+y(y)						 | Set/goto y (row)
+xy(x,y)						 | Set/goto x & y (column & row)
+fill([bg], [l1], [l2])		 | Fill window with bg color from lines l1 to l2
+p([fg], [bg], [attr], text)	 | Puts text to window with full set of attributes
+nl([bg])					 | Add newline
+p0([fg], [bg], [attr], text) | Puts text at 0,0 and clears the rest of the line
+frame([fg], [bg])			 | Toggle framing of the window
+format(text)				 | Format text so that it linebreaks neatly inside window
 
 ## Curses template
 The `curses_template.rb` includes the class extension and serves as the basis for my curses applications. It is a runnable curses application that does nothing.
