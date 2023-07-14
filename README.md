@@ -23,6 +23,16 @@ spaces and (optional) background color, making it an effective newline.
 And then there is the convenient `frame`method that toggles a frame for the
 window.
 
+You may ask why the methods `xy`, `x?`, `y?`, `mx?` and `my?` as these must
+surely be covered already by the original Ruby Curses::Window library? They
+serve a special purpose as they take into account that a window can be framed.
+In a framed window, the top left corner is not `0,0`as that would be the top
+left frame position. The inside top left of the frame is actually `1,1`, but
+these functions treat that position as `0,0` if the window is framed and as
+`1,1` if it is not. So - when using these functions you don't have to think
+about compensating for the frame. Everything works just fine whether the
+window is framed or not.
+
 The `curses-template.rb` contains code that helps you understand how you can
 easily create curses applications in Ruby. It is a fully runnable app that
 doesn't do much - but you can fiddle around with the code and test
