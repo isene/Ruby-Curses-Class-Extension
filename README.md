@@ -7,6 +7,7 @@
 [![Stay Amazing](https://img.shields.io/badge/Stay-Amazing-blue.svg)](https://isene.org)
 
 <img src="img/ruby_curses_logo.svg" align="left" width="150" height="150"> Extending the Ruby Curses module with some obvious needed functionality.
+<br clear="left"/>
 
 No more fiddling with color pairs. No more manual filling lines or framing.
 
