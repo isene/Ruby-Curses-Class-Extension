@@ -6,7 +6,7 @@
 [![GitHub stars](https://img.shields.io/github/stars/isene/Ruby-Curses-Class-Extension.svg)](https://github.com/isene/Ruby-Curses-Class-Extension/stargazers)
 [![Stay Amazing](https://img.shields.io/badge/Stay-Amazing-blue.svg)](https://isene.org)
 
-Extending the Ruby Curses module with some obvious needed functionality.
+<img src="img/ruby_curses_logo.svg" align="left" width="150" height="150"> Extending the Ruby Curses module with some obvious needed functionality.
 
 No more fiddling with color pairs. No more manual filling lines or framing.
 
